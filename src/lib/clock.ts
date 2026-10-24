@@ -2,8 +2,8 @@
 
 export type TimeFormat = '12h' | '24h';
 
-const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const DAYS = ['Søndag', 'Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag'];
+const MONTHS = ['januar', 'februar', 'marts', 'april', 'maj', 'juni', 'juli', 'august', 'september', 'oktober', 'november', 'december'];
 
 export function greeting (date: Date): string {
 	const h = date.getHours();
@@ -16,12 +16,12 @@ export function dayName (date: Date): string {
 	return DAYS[date.getDay()];
 }
 
-/** "23 September" */
+/** "23. september" */
 export function dateText (date: Date): string {
-	return `${date.getDate()} ${MONTHS[date.getMonth()]}`;
+	return `${date.getDate()}. ${MONTHS[date.getMonth()]}`;
 }
 
-/** "Sunday, 11 October 2026" */
+/** "Søndag, 11. oktober 2026" */
 export function fullDate (date: Date): string {
 	return `${dayName(date)}, ${dateText(date)} ${date.getFullYear()}`;
 }

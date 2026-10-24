@@ -6,4 +6,4 @@ build/
 
 # local, per-person settings
 tv.env
-src/config/catalog.local.ts
+# src/config/catalog.local.ts  (committed in this fork: Danish apps)

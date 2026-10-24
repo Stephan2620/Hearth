@@ -2,6 +2,11 @@
 
 # Hearth: a fast, calm home screen for LG webOS TVs
 
+> **About this fork** (Danish TV, LG webOS 5): the date is in Danish ("Lørdag, 24. oktober 2026"), the catalogue knows the
+> Danish streaming apps (DRTV, TV 2 Play, Viaplay, YouSee Play, Allente, HBO Max …) with short names and bundled icons
+> (`src/config/catalog.local.ts`, committed here), and app icons on the live list are read a few at a time, because the
+> Homebrew Channel service on webOS 5 (Node 8) fails with "stdout maxBuffer exceeded" above 200 KB of output.
+
 Hearth replaces the busy LG home screen with something quiet and quick: a **clock with the date and the weather**, **your apps and TV inputs in one or two rows**
 along the bottom, and a background that is plain **OLED black**, a **picture**, or a **slideshow from a USB drive**. It starts almost instantly, scrolls smoothly,
 and everything is adjustable from the remote.
