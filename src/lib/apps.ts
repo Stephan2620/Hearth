@@ -72,6 +72,9 @@ const HIDDEN_IDS = [APP_ID, 'google.assistant.promo', 'com.webos.app.discovery']
 
 const ICON_CACHE_KEY = 'launcher-icon-cache-v1';
 
+/** Icons read per shell call; keeps each reply well under the Homebrew service's 200 KB output limit. */
+const ICON_BATCH = 4;
+
 /** Icon paths must be plain absolute paths. Anything else (quotes, spaces, control
  *  characters, shell syntax) is skipped rather than passed to a root shell. */
 const SAFE_PATH = /^\/[A-Za-z0-9._\/+@-]+$/;
@@ -130,19 +133,33 @@ function loadIcons (points: LaunchPoint[]): Promise<Record<string, string>> {
 	}
 	if (!missing.length) return Promise.resolve(result);
 
-	// One line per icon: "<index> <base64>". busybox base64 has no -w, so strip newlines.
-	const script = missing
-		.map((m, i) => `printf '%d ' ${i}; base64 ${shellQuote(m.path)} 2>/dev/null | tr -d '\\n'; echo`)
-		.join('; ');
-	return exec(script, 15000).then((out) => {
-		for (const line of out.split('\n')) {
-			const match = /^(\d+) ([A-Za-z0-9+\/=]+)$/.exec(line);
-			const entry = match && missing[Number(match[1])];
-			if (!match || !entry) continue;
-			const url = `data:image/png;base64,${match[2]}`;
-			result[entry.id] = url;
-			cache[entry.path] = url;
-		}
+	// The Homebrew service runs on Node 8, whose exec() fails with "stdout maxBuffer exceeded" past 200 KB of
+	// output, and 30+ icons as base64 are well over that. So read them a few at a time; a batch that still
+	// fails (very large icons) is retried one icon at a time.
+	const readBatch = (start: number, count: number): Promise<void> => {
+		// One line per icon: "<index> <base64>". busybox base64 has no -w, so strip newlines.
+		const script = missing.slice(start, start + count)
+			.map((m, i) => `printf '%d ' ${start + i}; base64 ${shellQuote(m.path)} 2>/dev/null | tr -d '\\n'; echo`)
+			.join('; ');
+		return exec(script, 15000).then((out) => {
+			for (const line of out.split('\n')) {
+				const match = /^(\d+) ([A-Za-z0-9+\/=]+)$/.exec(line);
+				const entry = match && missing[Number(match[1])];
+				if (!match || !entry) continue;
+				const url = `data:image/png;base64,${match[2]}`;
+				result[entry.id] = url;
+				cache[entry.path] = url;
+			}
+		}, () => {
+			if (count === 1) return;
+			const singles: Promise<void>[] = [];
+			for (let i = start; i < Math.min(start + count, missing.length); i++) singles.push(readBatch(i, 1));
+			return Promise.all(singles).then(() => undefined);
+		});
+	};
+	const batches: Promise<void>[] = [];
+	for (let i = 0; i < missing.length; i += ICON_BATCH) batches.push(readBatch(i, ICON_BATCH));
+	return Promise.all(batches).then(() => {
 		// keep only the icons of apps that are still installed, so the cache does not grow past the storage limit
 		const kept: Record<string, string> = {};
 		for (const p of points) {
